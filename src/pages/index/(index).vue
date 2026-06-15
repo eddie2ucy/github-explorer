@@ -1,20 +1,7 @@
 <template>
-  <q-page class="flex flex-center">
-    <div class="column items-center">
-      <img
-        alt="Quasar logo"
-        src="~@/assets/quasar-logo-vertical.svg"
-        style="width: 200px; height: 200px"
-      />
-
-      <q-btn
-        class="q-mt-md"
-        color="primary"
-        to="/second"
-        label="Go to Second Page"
-        no-caps
-      />
-    </div>
+  <q-page class="q-pa-md">
+    <div class="text-h5">Search GitHub Repositories</div>
+    <p class="text-grey">Search UI coming soon.</p>
   </q-page>
 </template>
 

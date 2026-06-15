@@ -17,7 +17,7 @@ export default {
         'last 4 FirefoxAndroid versions',
         'last 4 iOS versions'
       ]
-    }),
+    })
 
     // https://github.com/elchininet/postcss-rtlcss
     // If you want to support RTL css, then

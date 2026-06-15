@@ -33,15 +33,12 @@ export default defineConfigWithVueTs(
    * pluginVue.configs["flat/recommended"]
    *   -> Above, plus rules to enforce subjective community defaults to ensure consistency.
    */
-  pluginVue.configs[ 'flat/essential' ],
+  pluginVue.configs['flat/essential'],
 
   {
     files: ['**/*.ts', '**/*.vue'],
     rules: {
-      '@typescript-eslint/consistent-type-imports': [
-        'error',
-        { prefer: 'type-imports' }
-      ],
+      '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }]
     }
   },
   // https://github.com/vuejs/eslint-config-typescript
@@ -67,15 +64,15 @@ export default defineConfigWithVueTs(
     // add your custom rules here
     rules: {
       'prefer-promise-reject-errors': 'off',
-            'vue/multi-word-component-names': 'off',
-      
+      'vue/multi-word-component-names': 'off',
+
       // allow debugger during development only
       'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off'
     }
   },
 
   {
-    files: [ 'src-pwa/sw/**/*.ts' ],
+    files: ['src-pwa/sw/**/*.ts'],
     languageOptions: {
       globals: {
         ...globals.serviceworker

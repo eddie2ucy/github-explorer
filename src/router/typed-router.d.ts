@@ -14,15 +14,13 @@ import type {
   ParamValueZeroOrMore,
   ParamValueZeroOrOne,
 } from 'vue-router'
-import type {
-  _ExtractParamParserType,
-} from 'vue-router/experimental'
+import type { _ExtractParamParserType } from 'vue-router/experimental'
 
 declare module 'vue-router' {
   interface TypesConfig {
-    ParamParsers:
-      | never
+    _ParamParsers: {}
     RouteNamedMap: import('vue-router/auto-routes').RouteNamedMap
+    _RouteFileInfoMap: import('vue-router/auto-routes')._RouteFileInfoMap
   }
 }
 
@@ -36,30 +34,29 @@ declare module 'vue-router/auto-routes' {
       '/',
       Record<never, never>,
       Record<never, never>,
-      | '//(index)'
-      | '//second'
-    >,
+      '//(index)' | '//repo/[owner]/[name]'
+    >
     '//(index)': RouteRecordInfo<
       '//(index)',
       '/',
       Record<never, never>,
       Record<never, never>,
-      | never
-    >,
-    '//second': RouteRecordInfo<
-      '//second',
-      '/second',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
+      never
+    >
+    '//repo/[owner]/[name]': RouteRecordInfo<
+      '//repo/[owner]/[name]',
+      '/repo/:owner/:name',
+      { owner: ParamValue<true>; name: ParamValue<true> },
+      { owner: ParamValue<false>; name: ParamValue<false> },
+      never
+    >
     '/[...path]': RouteRecordInfo<
       '/[...path]',
       '/:path(.*)',
       { path: ParamValue<true> },
       { path: ParamValue<false> },
-      | never
-    >,
+      never
+    >
   }
 
   /**
@@ -74,30 +71,24 @@ declare module 'vue-router/auto-routes' {
    */
   export interface _RouteFileInfoMap {
     'src/pages/index.vue': {
-      routes:
-        | '/'
-        | '//(index)'
-        | '//second'
-      views:
-        | 'default'
+      routes: '/' | '//(index)' | '//repo/[owner]/[name]'
+      views: 'default'
+      pathParamNames: never
     }
     'src/pages/index/(index).vue': {
-      routes:
-        | '//(index)'
-      views:
-        | never
+      routes: '//(index)'
+      views: never
+      pathParamNames: never
     }
-    'src/pages/index/second.vue': {
-      routes:
-        | '//second'
-      views:
-        | never
+    'src/pages/index/repo/[owner]/[name].vue': {
+      routes: '//repo/[owner]/[name]'
+      views: never
+      pathParamNames: 'name'
     }
     'src/pages/[...path].vue': {
-      routes:
-        | '/[...path]'
-      views:
-        | never
+      routes: '/[...path]'
+      views: never
+      pathParamNames: 'path'
     }
   }
 
@@ -108,9 +99,7 @@ declare module 'vue-router/auto-routes' {
    * @internal
    */
   export type _RouteNamesForFilePath<FilePath extends string> =
-    _RouteFileInfoMap extends Record<FilePath, infer Info>
-      ? Info['routes']
-      : keyof RouteNamedMap
+    _RouteFileInfoMap extends Record<FilePath, infer Info> ? Info['routes'] : keyof RouteNamedMap
 }
 
 export {}
