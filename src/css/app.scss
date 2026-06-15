@@ -1,1 +1,11 @@
 // app global css
+
+.page-container {
+  margin-inline: auto;
+}
+
+@media (min-width: 960px) {
+  .page-container {
+    max-width: 960px;
+  }
+}

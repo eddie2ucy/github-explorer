@@ -47,8 +47,9 @@
         :key="repo.id"
         clickable
         :to="{
-          name: '/repo/[owner]/[name]',
-          params: { owner: repo.owner.login, name: repo.name }
+          name: '//repo/[owner]/[name]',
+          params: { owner: repo.owner.login, name: repo.name },
+          query: query ? { q: query } : {}
         }"
       >
         <q-item-section avatar>
@@ -70,13 +71,61 @@
         </q-item-section>
       </q-item>
     </q-list>
+
+    <div v-if="results.length > 0" class="q-mt-md" data-testid="pagination">
+      <div class="text-center text-grey q-mb-sm" data-testid="page-indicator">
+        Page {{ page }} of {{ totalPages }}
+      </div>
+      <div class="row items-center justify-center q-gutter-sm">
+        <q-btn
+          flat
+          dense
+          color="primary"
+          label="First"
+          :disable="!hasPrevPage"
+          data-testid="first-page-button"
+          @click="firstPage"
+        />
+        <q-btn
+          flat
+          dense
+          color="primary"
+          label="Previous"
+          :disable="!hasPrevPage"
+          data-testid="prev-page-button"
+          @click="prevPage"
+        />
+        <q-btn
+          flat
+          dense
+          color="primary"
+          label="Next"
+          :disable="!hasNextPage"
+          data-testid="next-page-button"
+          @click="nextPage"
+        />
+        <q-btn
+          flat
+          dense
+          color="primary"
+          label="Last"
+          :disable="!hasNextPage"
+          data-testid="last-page-button"
+          @click="lastPage"
+        />
+      </div>
+    </div>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useGithubApi } from '@/composables/useGithubApi'
+import {
+  useGithubApi,
+  SEARCH_RESULTS_MAX,
+  SEARCH_RESULTS_PER_PAGE
+} from '@/composables/useGithubApi'
 import RateLimitBanner from '@/components/RateLimitBanner.vue'
 import type { Repository } from '@/types/github'
 
@@ -89,31 +138,113 @@ function queryParamToString(value: string | null | (string | null)[] | undefined
   return raw ?? ''
 }
 
+function queryParamToPage(value: string | null | (string | null)[] | undefined): number {
+  const parsed = Number.parseInt(queryParamToString(value), 10)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1
+}
+
 const initialQuery = queryParamToString(route.query.q)
+const initialPage = queryParamToPage(route.query.page)
 
 const searchInput = ref(initialQuery)
 const query = ref('')
+const page = ref(1)
+const totalCount = ref(0)
 const results = ref<Repository[]>([])
 const hasSearched = ref(false)
+
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(Math.min(totalCount.value, SEARCH_RESULTS_MAX) / SEARCH_RESULTS_PER_PAGE))
+)
+
+const hasPrevPage = computed(() => page.value > 1)
+const hasNextPage = computed(() => page.value < totalPages.value)
+
+watch(
+  () => route.query,
+  (newQuery) => {
+    if (queryParamToString(newQuery.q) !== '') return
+
+    if (
+      searchInput.value !== '' ||
+      query.value !== '' ||
+      page.value !== 1 ||
+      hasSearched.value ||
+      error.value !== null ||
+      rateLimit.value.limit !== null
+    ) {
+      searchInput.value = ''
+      query.value = ''
+      page.value = 1
+      results.value = []
+      totalCount.value = 0
+      hasSearched.value = false
+      error.value = null
+      rateLimit.value = { limit: null, remaining: null, reset: null }
+    }
+  }
+)
+
+function syncQuery() {
+  void router.replace({
+    query: {
+      ...(query.value ? { q: query.value } : {}),
+      ...(page.value > 1 ? { page: String(page.value) } : {})
+    }
+  })
+}
+
+async function runSearch() {
+  hasSearched.value = true
+  const result = await searchRepositories(query.value, page.value)
+  results.value = result?.items ?? []
+  totalCount.value = result?.total_count ?? 0
+}
 
 async function performSearch() {
   const value = searchInput.value.trim()
   query.value = value
-  void router.replace({ query: value ? { q: value } : {} })
+  page.value = 1
+  syncQuery()
 
   if (!value) {
     hasSearched.value = false
     results.value = []
+    totalCount.value = 0
     return
   }
 
-  hasSearched.value = true
-  const result = await searchRepositories(value)
-  results.value = result?.items ?? []
+  await runSearch()
+}
+
+async function goToPage(newPage: number) {
+  page.value = newPage
+  syncQuery()
+  await runSearch()
+}
+
+function nextPage() {
+  void goToPage(page.value + 1)
+}
+
+function prevPage() {
+  void goToPage(page.value - 1)
+}
+
+function firstPage() {
+  void goToPage(1)
+}
+
+function lastPage() {
+  void goToPage(totalPages.value)
 }
 
 if (initialQuery) {
-  void performSearch()
+  query.value = initialQuery
+  page.value = initialPage
+  void runSearch()
+} else if (rateLimit.value.limit !== null) {
+  rateLimit.value = { limit: null, remaining: null, reset: null }
 }
 
 function onClear() {
@@ -129,5 +260,16 @@ function formatDate(value: string): string {
   }).format(new Date(value))
 }
 
-defineExpose({ searchInput, performSearch })
+defineExpose({
+  searchInput,
+  performSearch,
+  page,
+  totalPages,
+  hasPrevPage,
+  hasNextPage,
+  nextPage,
+  prevPage,
+  firstPage,
+  lastPage
+})
 </script>

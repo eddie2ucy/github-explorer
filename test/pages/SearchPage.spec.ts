@@ -9,6 +9,8 @@ const searchRepositoriesMock = vi.fn()
 const errorRef = ref<GithubApiError | null>(null)
 const loadingRef = ref(false)
 const rateLimitRef = ref<RateLimitInfo>({ limit: null, remaining: null, reset: null })
+const routeQueryRef = ref<Record<string, string>>({})
+const routerReplaceMock = vi.fn()
 
 vi.mock('@/composables/useGithubApi', () => ({
   useGithubApi: () => ({
@@ -18,15 +20,23 @@ vi.mock('@/composables/useGithubApi', () => ({
     rateLimit: rateLimitRef,
     searchRepositories: searchRepositoriesMock,
     getRepository: vi.fn()
-  })
+  }),
+  SEARCH_RESULTS_PER_PAGE: 30,
+  SEARCH_RESULTS_MAX: 1000
 }))
 
 vi.mock('vue-router', async () => {
   const actual = await vi.importActual<typeof import('vue-router')>('vue-router')
   return {
     ...actual,
-    useRoute: () => ({ query: {} }) as unknown as ReturnType<typeof actual.useRoute>,
-    useRouter: () => ({ replace: vi.fn() }) as unknown as ReturnType<typeof actual.useRouter>
+    useRoute: () =>
+      ({
+        get query() {
+          return routeQueryRef.value
+        }
+      }) as unknown as ReturnType<typeof actual.useRoute>,
+    useRouter: () =>
+      ({ replace: routerReplaceMock }) as unknown as ReturnType<typeof actual.useRouter>
   }
 })
 
@@ -74,6 +84,8 @@ describe('SearchPage', () => {
     errorRef.value = null
     loadingRef.value = false
     rateLimitRef.value = { limit: null, remaining: null, reset: null }
+    routeQueryRef.value = {}
+    routerReplaceMock.mockReset()
   })
 
   it('shows a loading state while a request is in flight', () => {
@@ -96,7 +108,7 @@ describe('SearchPage', () => {
     await wrapper.find('[data-testid="search-button"]').trigger('click')
     await flushPromises()
 
-    expect(searchRepositoriesMock).toHaveBeenCalledWith('vue')
+    expect(searchRepositoriesMock).toHaveBeenCalledWith('vue', 1)
     expect(wrapper.text()).toContain('vuejs/vue')
     expect(wrapper.text()).toContain('100 stars')
   })
@@ -128,5 +140,128 @@ describe('SearchPage', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('GitHub API request failed with status 500.')
+  })
+
+  it('navigates to the next page, fetches more results, and syncs the page to the URL', async () => {
+    searchRepositoriesMock.mockResolvedValue({
+      total_count: 100,
+      incomplete_results: false,
+      items: [createRepo()]
+    })
+
+    const wrapper = mount(SearchPage)
+    wrapper.vm.searchInput = 'vue'
+    await wrapper.find('[data-testid="search-button"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="page-indicator"]').text()).toBe('Page 1 of 4')
+    expect(wrapper.vm.hasPrevPage).toBe(false)
+    expect(wrapper.vm.hasNextPage).toBe(true)
+
+    await wrapper.find('[data-testid="next-page-button"]').trigger('click')
+    await flushPromises()
+
+    expect(searchRepositoriesMock).toHaveBeenLastCalledWith('vue', 2)
+    expect(wrapper.find('[data-testid="page-indicator"]').text()).toBe('Page 2 of 4')
+    expect(wrapper.vm.hasPrevPage).toBe(true)
+    expect(routerReplaceMock).toHaveBeenLastCalledWith({ query: { q: 'vue', page: '2' } })
+  })
+
+  it('jumps to the last page and back to the first page using the first/last buttons', async () => {
+    searchRepositoriesMock.mockResolvedValue({
+      total_count: 100,
+      incomplete_results: false,
+      items: [createRepo()]
+    })
+
+    const wrapper = mount(SearchPage)
+    wrapper.vm.searchInput = 'vue'
+    await wrapper.find('[data-testid="search-button"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="page-indicator"]').text()).toBe('Page 1 of 4')
+
+    await wrapper.find('[data-testid="last-page-button"]').trigger('click')
+    await flushPromises()
+
+    expect(searchRepositoriesMock).toHaveBeenLastCalledWith('vue', 4)
+    expect(wrapper.find('[data-testid="page-indicator"]').text()).toBe('Page 4 of 4')
+    expect(wrapper.vm.hasNextPage).toBe(false)
+    expect(routerReplaceMock).toHaveBeenLastCalledWith({ query: { q: 'vue', page: '4' } })
+
+    await wrapper.find('[data-testid="first-page-button"]').trigger('click')
+    await flushPromises()
+
+    expect(searchRepositoriesMock).toHaveBeenLastCalledWith('vue', 1)
+    expect(wrapper.find('[data-testid="page-indicator"]').text()).toBe('Page 1 of 4')
+    expect(wrapper.vm.hasPrevPage).toBe(false)
+    expect(routerReplaceMock).toHaveBeenLastCalledWith({ query: { q: 'vue' } })
+  })
+
+  it('disables the next page button once the 1000-result cap is reached', async () => {
+    searchRepositoriesMock.mockResolvedValue({
+      total_count: 5000,
+      incomplete_results: true,
+      items: [createRepo()]
+    })
+
+    const wrapper = mount(SearchPage)
+    wrapper.vm.searchInput = 'vue'
+    await wrapper.find('[data-testid="search-button"]').trigger('click')
+    await flushPromises()
+
+    wrapper.vm.page = 33
+    expect(wrapper.vm.hasNextPage).toBe(true)
+
+    wrapper.vm.page = 34
+    expect(wrapper.vm.hasNextPage).toBe(false)
+  })
+
+  it('resets to the initial state when the route is navigated to with an empty query', async () => {
+    searchRepositoriesMock.mockResolvedValue({
+      total_count: 100,
+      incomplete_results: false,
+      items: [createRepo()]
+    })
+    rateLimitRef.value = { limit: 60, remaining: 56, reset: 1700000000 }
+
+    const wrapper = mount(SearchPage)
+    wrapper.vm.searchInput = 'vue'
+    await wrapper.find('[data-testid="search-button"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="results-list"]').exists()).toBe(true)
+
+    routeQueryRef.value = {}
+    await flushPromises()
+
+    expect(wrapper.vm.searchInput).toBe('')
+    expect(wrapper.vm.page).toBe(1)
+    expect(wrapper.find('[data-testid="results-list"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="pagination"]').exists()).toBe(false)
+    expect(rateLimitRef.value).toEqual({ limit: null, remaining: null, reset: null })
+  })
+
+  it('clears a leftover rate-limit banner when mounted fresh with no query', () => {
+    rateLimitRef.value = { limit: 60, remaining: 55, reset: 1700000000 }
+
+    mount(SearchPage)
+
+    expect(rateLimitRef.value).toEqual({ limit: null, remaining: null, reset: null })
+  })
+
+  it('restores the page number from the URL on initial load', async () => {
+    routeQueryRef.value = { q: 'vue', page: '3' }
+    searchRepositoriesMock.mockResolvedValue({
+      total_count: 100,
+      incomplete_results: false,
+      items: [createRepo()]
+    })
+
+    const wrapper = mount(SearchPage)
+    await flushPromises()
+
+    expect(searchRepositoriesMock).toHaveBeenCalledWith('vue', 3)
+    expect(wrapper.find('[data-testid="page-indicator"]').text()).toBe('Page 3 of 4')
   })
 })

@@ -4,6 +4,10 @@ import type { Repository, SearchResult } from '@/types/github'
 
 const GITHUB_API_BASE_URL = 'https://api.github.com'
 
+// GitHub's Search API only ever returns the first 1000 results for a query.
+export const SEARCH_RESULTS_PER_PAGE = 30
+export const SEARCH_RESULTS_MAX = 1000
+
 export interface GithubApiError {
   status: number
   message: string
@@ -20,7 +24,7 @@ export interface UseGithubApiReturn {
   error: Ref<GithubApiError | null>
   loading: Ref<boolean>
   rateLimit: Ref<RateLimitInfo>
-  searchRepositories: (query: string) => Promise<SearchResult | null>
+  searchRepositories: (query: string, page?: number) => Promise<SearchResult | null>
   getRepository: (owner: string, name: string) => Promise<Repository | null>
 }
 
@@ -77,8 +81,10 @@ export function useGithubApi(): UseGithubApiReturn {
     }
   }
 
-  function searchRepositories(query: string) {
-    return request<SearchResult>(`/search/repositories?q=${encodeURIComponent(query)}`)
+  function searchRepositories(query: string, page = 1) {
+    return request<SearchResult>(
+      `/search/repositories?q=${encodeURIComponent(query)}&page=${page}&per_page=${SEARCH_RESULTS_PER_PAGE}`
+    )
   }
 
   function getRepository(owner: string, name: string) {

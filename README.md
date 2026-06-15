@@ -1,24 +1,27 @@
-# GitHub Repository Explorer (github-explorer)
+# GitHub Repository Explorer
 
-## Install the dependencies
+A small Vue 3 + Quasar single-page app for searching public GitHub repositories. It lets
+you search by keyword, page through results, and open a repository's detail page to see
+its description, stats, topics, license, and more. All data comes directly from the
+GitHub REST API — there is no backend.
+
+## GitHub API token (optional)
+
+Unauthenticated requests to the GitHub API are limited to 60/hour per IP. To raise that to
+5,000/hour, copy `.env.example` to `.env` and set `VITE_GITHUB_TOKEN` to a
+[personal access token](https://github.com/settings/tokens) (no scopes are required for
+searching public repositories). The app works fine without one.
+
+## Running locally
 
 ```bash
-pnpm install
-# or: yarn/npm/bun install
+npm install     # install dependencies
+npm run dev     # start the dev server with hot reload
+npm run test    # run the unit test suite
+npm run build   # build for production
 ```
 
-### Start the app in development mode (HMR, error reporting, etc.)
+## AI disclosure
 
-```bash
-quasar dev
-```
-
-### Build the app for production
-
-```bash
-quasar build
-```
-
-### Customize the configuration
-
-See [Configuring quasar.config.js](https://v2.quasar.dev/quasar-cli-vite/quasar-config-js).
+This project was built with the assistance of an AI coding assistant (Claude Code), 
+under human review and direction, mainly in unit test, README and layout fine-tuning.
