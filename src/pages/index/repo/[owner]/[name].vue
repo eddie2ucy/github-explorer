@@ -42,15 +42,23 @@
       <q-separator />
 
       <q-card-section class="text-grey">
-        <div>
-          <q-icon name="star" size="xs" class="q-mr-xs" />{{ repository.stargazers_count }} stars ·
-          <q-icon name="call_split" size="xs" class="q-mr-xs" />{{ repository.forks_count }} forks ·
-          <q-icon name="visibility" size="xs" class="q-mr-xs" />{{ repository.watchers_count }}
-          watchers ·
-          <q-icon name="radio_button_unchecked" size="xs" class="q-mr-xs" />{{
-            repository.open_issues_count
-          }}
-          open issues
+        <div class="row wrap q-gutter-sm">
+          <div class="row items-center no-wrap">
+            <q-icon name="star" size="xs" class="q-mr-xs" />
+            <span>{{ repository.stargazers_count }} stars</span>
+          </div>
+          <div class="row items-center no-wrap">
+            <q-icon name="call_split" size="xs" class="q-mr-xs" />
+            <span>{{ repository.forks_count }} forks</span>
+          </div>
+          <div class="row items-center no-wrap">
+            <q-icon name="visibility" size="xs" class="q-mr-xs" />
+            <span>{{ repository.watchers_count }} watchers</span>
+          </div>
+          <div class="row items-center no-wrap">
+            <q-icon name="radio_button_unchecked" size="xs" class="q-mr-xs" />
+            <span>{{ repository.open_issues_count }} open issues</span>
+          </div>
         </div>
         <div v-if="repository.language" class="q-mt-sm">Language: {{ repository.language }}</div>
         <div v-if="repository.topics.length > 0" class="q-mt-sm">
