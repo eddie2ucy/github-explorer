@@ -76,7 +76,7 @@
       Enter a keyword above to search for GitHub repositories.
     </div>
 
-    <div v-if="results.length > 0" class="q-mt-md" data-testid="pagination">
+    <div v-if="results.length > 0 && !loading" class="q-mt-md" data-testid="pagination">
       <div class="text-center text-grey q-mb-sm" data-testid="page-indicator">
         Page {{ page }} of {{ totalPages }}
       </div>
