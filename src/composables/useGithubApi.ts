@@ -106,6 +106,8 @@ function errorMessageForStatus(status: number): string {
       return 'GitHub API rate limit exceeded. Please try again later.'
     case 404:
       return 'Repository not found.'
+    case 422:
+      return "Search couldn't be completed. Try simplifying your query."
     default:
       return `GitHub API request failed with status ${status}.`
   }

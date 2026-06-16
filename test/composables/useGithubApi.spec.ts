@@ -134,6 +134,19 @@ describe('useGithubApi', () => {
     expect(data.value).toEqual(repo)
   })
 
+  it('sets an error for an invalid search query (422)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockFetchResponse({}, { status: 422 })))
+
+    const { error, searchRepositories } = useGithubApi()
+    const result = await searchRepositories('NOT is:invalid')
+
+    expect(result).toBeNull()
+    expect(error.value).toEqual({
+      status: 422,
+      message: "Search couldn't be completed. Try simplifying your query."
+    })
+  })
+
   it('sets a not-found error when the repository does not exist (404)', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockFetchResponse({}, { status: 404 })))
 

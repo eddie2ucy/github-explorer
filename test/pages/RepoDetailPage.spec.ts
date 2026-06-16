@@ -131,7 +131,7 @@ describe('RepoDetailPage', () => {
     expect(wrapper.find('[data-testid="github-link"]').exists()).toBe(true)
   })
 
-  it('shows a 404 error state when the repository is not found', async () => {
+  it('shows a dedicated not-found UI when the repository does not exist (404)', async () => {
     getRepositoryMock.mockImplementation(async () => {
       errorRef.value = { status: 404, message: 'Repository not found.' }
       return null
@@ -140,7 +140,23 @@ describe('RepoDetailPage', () => {
     const wrapper = mount(RepoDetailPage)
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Repository not found.')
+    expect(wrapper.find('[data-testid="not-found-state"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="error-state"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('Repository not found')
+  })
+
+  it('shows a generic error banner for non-404 errors', async () => {
+    getRepositoryMock.mockImplementation(async () => {
+      errorRef.value = { status: 500, message: 'GitHub API request failed with status 500.' }
+      return null
+    })
+
+    const wrapper = mount(RepoDetailPage)
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="error-state"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="not-found-state"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('GitHub API request failed with status 500.')
   })
 
   it('computes the back link from the search query', () => {

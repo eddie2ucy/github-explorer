@@ -48,18 +48,18 @@
         clickable
         :to="{
           name: '//repo/[owner]/[name]',
-          params: { owner: repo.owner.login, name: repo.name },
+          params: { owner: repo.owner?.login ?? '', name: repo.name },
           query: query ? { q: query } : {}
         }"
       >
         <q-item-section avatar>
           <q-avatar>
-            <img :src="repo.owner.avatar_url" :alt="repo.owner.login" />
+            <img :src="repo.owner?.avatar_url ?? ''" :alt="repo.owner?.login ?? ''" />
           </q-avatar>
         </q-item-section>
 
         <q-item-section>
-          <q-item-label>{{ repo.full_name }}</q-item-label>
+          <q-item-label class="ellipsis">{{ repo.full_name }}</q-item-label>
           <q-item-label v-if="repo.description" caption lines="2">
             {{ repo.description }}
           </q-item-label>
@@ -71,6 +71,10 @@
         </q-item-section>
       </q-item>
     </q-list>
+
+    <div v-else class="text-grey text-center q-pa-lg" data-testid="idle-state">
+      Enter a keyword above to search for GitHub repositories.
+    </div>
 
     <div v-if="results.length > 0" class="q-mt-md" data-testid="pagination">
       <div class="text-center text-grey q-mb-sm" data-testid="page-indicator">
@@ -113,6 +117,13 @@
           data-testid="last-page-button"
           @click="lastPage"
         />
+      </div>
+      <div
+        v-if="isCapped"
+        class="text-caption text-grey text-center q-mt-xs"
+        data-testid="cap-note"
+      >
+        GitHub limits search results to 1,000 entries.
       </div>
     </div>
   </q-page>
@@ -159,6 +170,7 @@ const totalPages = computed(() =>
 
 const hasPrevPage = computed(() => page.value > 1)
 const hasNextPage = computed(() => page.value < totalPages.value)
+const isCapped = computed(() => totalCount.value > SEARCH_RESULTS_MAX)
 
 watch(
   () => route.query,
@@ -267,6 +279,7 @@ defineExpose({
   totalPages,
   hasPrevPage,
   hasNextPage,
+  isCapped,
   nextPage,
   prevPage,
   firstPage,

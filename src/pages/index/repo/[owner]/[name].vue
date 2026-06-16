@@ -10,6 +10,18 @@
       Loading...
     </div>
 
+    <div
+      v-else-if="error?.status === 404"
+      class="text-center q-pa-xl"
+      data-testid="not-found-state"
+    >
+      <q-icon name="search_off" size="xl" color="grey-5" />
+      <div class="text-h6 q-mt-md text-grey-7">Repository not found</div>
+      <div class="text-body2 text-grey q-mt-sm">
+        This repository may have been renamed, deleted, or never existed.
+      </div>
+    </div>
+
     <q-banner v-else-if="error" class="bg-negative text-white q-mb-md" data-testid="error-state">
       {{ error.message }}
     </q-banner>
@@ -17,7 +29,7 @@
     <q-card v-else-if="repository" flat bordered data-testid="repository-detail">
       <q-card-section>
         <div class="row items-center q-gutter-sm">
-          <div class="text-h5">{{ repository.full_name }}</div>
+          <div class="text-h5 text-break">{{ repository.full_name }}</div>
           <q-badge v-if="repository.private" color="grey-7" data-testid="private-badge">
             Private
           </q-badge>

@@ -19,7 +19,7 @@ export interface Repository {
   node_id: string
   name: string
   full_name: string
-  owner: Owner
+  owner: Owner | null
   private: boolean
   html_url: string
   description: string | null

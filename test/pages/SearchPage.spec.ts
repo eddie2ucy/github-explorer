@@ -88,6 +88,13 @@ describe('SearchPage', () => {
     routerReplaceMock.mockReset()
   })
 
+  it('shows an idle prompt when no search has been performed', () => {
+    const wrapper = mount(SearchPage)
+
+    expect(wrapper.find('[data-testid="idle-state"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Enter a keyword above to search for GitHub repositories.')
+  })
+
   it('shows a loading state while a request is in flight', () => {
     loadingRef.value = true
 
@@ -196,6 +203,22 @@ describe('SearchPage', () => {
     expect(wrapper.find('[data-testid="page-indicator"]').text()).toBe('Page 1 of 4')
     expect(wrapper.vm.hasPrevPage).toBe(false)
     expect(routerReplaceMock).toHaveBeenLastCalledWith({ query: { q: 'vue' } })
+  })
+
+  it('shows a cap note when total results exceed 1,000', async () => {
+    searchRepositoriesMock.mockResolvedValue({
+      total_count: 5000,
+      incomplete_results: true,
+      items: [createRepo()]
+    })
+
+    const wrapper = mount(SearchPage)
+    wrapper.vm.searchInput = 'vue'
+    await wrapper.find('[data-testid="search-button"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="cap-note"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('GitHub limits search results to 1,000 entries.')
   })
 
   it('disables the next page button once the 1000-result cap is reached', async () => {
